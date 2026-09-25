@@ -1,0 +1,63 @@
+fusion_node:
+  host: "127.0.0.1"
+  port: 5100
+  connect_timeout_s: 5.0
+  reconnect:
+    initial_delay_s: 1.0
+    max_delay_s: 30.0
+
+node:
+  # Must be a stable UUID for the Edge Node.
+  node_id: "9988ecc8-6903-4f18-9ee8-ead74eeedef1"
+  registration_file: "config/registration.json"
+
+status:
+  interval_s: 5.0
+  # Mode the node starts in / reverts to when no jam task is active. Must
+  # match modeDefinition[0].modeName (MODE_TYPE_DEFAULT) in registration.json.
+  default_mode: "STANDBY"
+  node_location:
+    latitude: 50.8500
+    longitude: 4.3500
+    altitude: 20.0
+
+# Simulated jamming effector profiles, one per taskable mode. A Fusion Node
+# selects a mode via Task.Command.mode_change (see client.handle_task);
+# JammerController just tracks which profile is "active" - no RF is ever
+# transmitted here. This is a protocol-level stand-in so the Tasking /
+# StatusReport state machine can be built and interop-tested against a real
+# Fusion Node before any hardware TX chain exists, mirroring how spectre's
+# EWDetectionSource stands in for real RF detection on the sensor side.
+#
+# Every mode_name listed here must have a matching modeDefinition entry in
+# registration.json, or the Fusion Node will reject/ignore tasking into it
+# (see spectre's CLAUDE.md "Fusion Node registration-validation quirks" for
+# the general pattern this follows).
+jamming:
+  profiles:
+    - mode_name: "JAM_GNSS_L1"
+      description: "Barrage jam of GNSS L1 (GPS/Galileo/BeiDou civil)"
+      centre_frequency: 1575420000.0
+      bandwidth: 4000000.0
+      tx_power_dbm: 30.0
+
+    - mode_name: "JAM_UAV_CONTROL"
+      description: "Barrage jam of common 2.4 GHz UAV control links"
+      centre_frequency: 2437000000.0
+      bandwidth: 20000000.0
+      tx_power_dbm: 30.0
+
+    - mode_name: "JAM_UAV_VIDEO"
+      description: "Barrage jam of common 5.8 GHz UAV video downlinks"
+      centre_frequency: 5800000000.0
+      bandwidth: 20000000.0
+      tx_power_dbm: 30.0
+
+    - mode_name: "JAM_WIDEBAND"
+      description: "Wideband barrage jam across the 2.4 GHz ISM band"
+      centre_frequency: 2440000000.0
+      bandwidth: 80000000.0
+      tx_power_dbm: 33.0
+
+logging:
+  level: "INFO"

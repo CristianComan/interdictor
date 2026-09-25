@@ -1,0 +1,383 @@
+{
+  "nodeDefinition": [
+    {
+      "nodeType": "NODE_TYPE_JAMMER",
+      "nodeSubType": [
+        "EA",
+        "INTERDICTOR"
+      ]
+    }
+  ],
+  "icdVersion": "BSI Flex 335 v2.0 / NATO STANREC 4869 Ed A V1.0",
+  "name": "INTERDICTOR-01",
+  "shortName": "INTERDICTOR",
+  "capabilities": [
+    {
+      "category": "RF Effector",
+      "type": "Maximum Transmit Power",
+      "value": "33",
+      "units": "dBm"
+    }
+  ],
+  "statusDefinition": {
+    "statusInterval": {
+      "units": "TIME_UNITS_SECONDS",
+      "value": 5.0
+    },
+    "locationDefinition": {
+      "locationUnits": "LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M",
+      "locationDatum": "LOCATION_DATUM_WGS84_E"
+    },
+    "statusReport": [
+      {
+        "category": "STATUS_REPORT_CATEGORY_STATUS",
+        "type": "Mode Change",
+        "units": "text"
+      }
+    ]
+  },
+  "modeDefinition": [
+    {
+      "modeName": "STANDBY",
+      "modeType": "MODE_TYPE_DEFAULT",
+      "modeDescription": "Not transmitting - awaiting tasking",
+      "settleTime": {
+        "units": "TIME_UNITS_MILLISECONDS",
+        "value": 0.0
+      },
+      "scanType": "SCAN_TYPE_FIXED",
+      "trackingType": "TRACKING_TYPE_NONE",
+      "task": {
+        "concurrentTasks": 1,
+        "regionDefinition": {
+          "regionType": [
+            "REGION_TYPE_AREA_OF_INTEREST"
+          ],
+          "regionArea": [
+            {
+              "locationUnits": "LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M",
+              "locationDatum": "LOCATION_DATUM_WGS84_E"
+            }
+          ]
+        },
+        "command": [
+          {
+            "type": "COMMAND_TYPE_REQUEST",
+            "units": "n/a",
+            "completionTime": {
+              "value": 1,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_GNSS_L1",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_CONTROL",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_VIDEO",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_WIDEBAND",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "modeName": "JAM_GNSS_L1",
+      "modeType": "MODE_TYPE_PERMANENT",
+      "modeDescription": "Barrage jam of GNSS L1 (GPS/Galileo/BeiDou civil)",
+      "settleTime": {
+        "units": "TIME_UNITS_MILLISECONDS",
+        "value": 200.0
+      },
+      "scanType": "SCAN_TYPE_FIXED",
+      "trackingType": "TRACKING_TYPE_NONE",
+      "task": {
+        "concurrentTasks": 1,
+        "regionDefinition": {
+          "regionType": [
+            "REGION_TYPE_AREA_OF_INTEREST"
+          ],
+          "regionArea": [
+            {
+              "locationUnits": "LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M",
+              "locationDatum": "LOCATION_DATUM_WGS84_E"
+            }
+          ]
+        },
+        "command": [
+          {
+            "type": "COMMAND_TYPE_REQUEST",
+            "units": "n/a",
+            "completionTime": {
+              "value": 1,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "STANDBY",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_CONTROL",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_VIDEO",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_WIDEBAND",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "modeName": "JAM_UAV_CONTROL",
+      "modeType": "MODE_TYPE_PERMANENT",
+      "modeDescription": "Barrage jam of common 2.4 GHz UAV control links",
+      "settleTime": {
+        "units": "TIME_UNITS_MILLISECONDS",
+        "value": 200.0
+      },
+      "scanType": "SCAN_TYPE_FIXED",
+      "trackingType": "TRACKING_TYPE_NONE",
+      "task": {
+        "concurrentTasks": 1,
+        "regionDefinition": {
+          "regionType": [
+            "REGION_TYPE_AREA_OF_INTEREST"
+          ],
+          "regionArea": [
+            {
+              "locationUnits": "LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M",
+              "locationDatum": "LOCATION_DATUM_WGS84_E"
+            }
+          ]
+        },
+        "command": [
+          {
+            "type": "COMMAND_TYPE_REQUEST",
+            "units": "n/a",
+            "completionTime": {
+              "value": 1,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "STANDBY",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_GNSS_L1",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_VIDEO",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_WIDEBAND",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "modeName": "JAM_UAV_VIDEO",
+      "modeType": "MODE_TYPE_PERMANENT",
+      "modeDescription": "Barrage jam of common 5.8 GHz UAV video downlinks",
+      "settleTime": {
+        "units": "TIME_UNITS_MILLISECONDS",
+        "value": 200.0
+      },
+      "scanType": "SCAN_TYPE_FIXED",
+      "trackingType": "TRACKING_TYPE_NONE",
+      "task": {
+        "concurrentTasks": 1,
+        "regionDefinition": {
+          "regionType": [
+            "REGION_TYPE_AREA_OF_INTEREST"
+          ],
+          "regionArea": [
+            {
+              "locationUnits": "LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M",
+              "locationDatum": "LOCATION_DATUM_WGS84_E"
+            }
+          ]
+        },
+        "command": [
+          {
+            "type": "COMMAND_TYPE_REQUEST",
+            "units": "n/a",
+            "completionTime": {
+              "value": 1,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "STANDBY",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_GNSS_L1",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_CONTROL",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_WIDEBAND",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "modeName": "JAM_WIDEBAND",
+      "modeType": "MODE_TYPE_PERMANENT",
+      "modeDescription": "Wideband barrage jam across the 2.4 GHz ISM band",
+      "settleTime": {
+        "units": "TIME_UNITS_MILLISECONDS",
+        "value": 200.0
+      },
+      "scanType": "SCAN_TYPE_FIXED",
+      "trackingType": "TRACKING_TYPE_NONE",
+      "task": {
+        "concurrentTasks": 1,
+        "regionDefinition": {
+          "regionType": [
+            "REGION_TYPE_AREA_OF_INTEREST"
+          ],
+          "regionArea": [
+            {
+              "locationUnits": "LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M",
+              "locationDatum": "LOCATION_DATUM_WGS84_E"
+            }
+          ]
+        },
+        "command": [
+          {
+            "type": "COMMAND_TYPE_REQUEST",
+            "units": "n/a",
+            "completionTime": {
+              "value": 1,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "STANDBY",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_GNSS_L1",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_CONTROL",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_VIDEO",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "configData": [
+    {
+      "manufacturer": "INTERDICTOR",
+      "model": "SAPIENT Effector Node",
+      "softwareVersion": "0.1.0"
+    }
+  ]
+}

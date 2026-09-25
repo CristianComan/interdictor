@@ -82,10 +82,19 @@ def build_status(
 
 
 def build_task_ack(
-    node_id: str, task_id: str, status: int, reasons: tuple[str, ...] = ()
+    node_id: str, task_id: str, status: int, destination_id: str, reasons: tuple[str, ...] = ()
 ) -> SapientMessage:
+    """destination_id must be the node_id of whoever sent the Task being acked.
+
+    The SapientMessage schema marks destination_id optional, but the Fusion
+    Node validator rejects a TaskAck without it ("missing mandatory field:
+    destination_id for task_ack") - see spectre's CLAUDE.md for the same
+    reverse-engineered quirk on the sensor side.
+    """
     body = TaskAck()
     body.task_id = task_id
     body.task_status = status
     body.reason.extend(reasons)
-    return _wrap(node_id, "task_ack", body)
+    msg = _wrap(node_id, "task_ack", body)
+    msg.destination_id = destination_id
+    return msg

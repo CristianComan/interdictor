@@ -9,6 +9,33 @@ Registration and proto bindings were bootstrapped from spectre's v0.1 (same
 BSI Flex 335 v2.0 protocol, opposite node role). This plan sequences what's
 left.
 
+### Verification status (`TaskAck.destination_id` fix)
+
+`build_task_ack` was found missing `SapientMessage.destination_id` - the
+identical bug already found and fixed in spectre (see spectre's PLAN.md
+"Phase 1 - Tasking" -> "Verification status" and its commit "Fix missing
+TaskAck.destination_id"). The Fusion Node validator requires
+`destination_id` on a `task_ack` specifically (addressed back to whoever
+sent the `Task`), even though the proto schema marks the field optional.
+Fixed the same way: `receive_loop` now passes the `Task`'s source
+`node_id` (the enclosing `SapientMessage.node_id`, not a field on `Task`
+itself) through `handle_task` and every `_ack(...)` call site into
+`build_task_ack`, which now requires a `destination_id` argument.
+`tests/test_tasking.py` was mirrored into `tests/test_client.py`'s
+existing `handle_task` cases (32 passing), each now asserting
+`sent[...].destination_id` echoes the source node_id.
+
+Live-verified against the local `CI-map-viewer` Fusion Node
+(`127.0.0.1:5100`, same instance spectre used): connect, `Registration`,
+and `RegistrationAck` all came back clean with no `Error`. No real `Task`
+was issued from the Fusion Node's own UI during this session (unlike
+spectre's verification, which had an operator trigger one), so the actual
+`Task` -> `TaskAck` wire round-trip with the new `destination_id` field
+is covered by the unit tests above but not yet re-confirmed live for
+interdictor specifically - re-verify with `logging.level: DEBUG` and a
+Fusion-Node-issued `Task` the next time an operator is available, the same
+way spectre's fix was confirmed.
+
 ## Guiding constraints
 
 - Stay on **BSI Flex 335 v2.0** (`src/sapient_msg/bsi_flex_335_v2_0`),

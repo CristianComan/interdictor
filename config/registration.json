@@ -55,14 +55,44 @@
         },
         "command": [
           {
-            "type": "COMMAND_TYPE_MODE_CHANGE",
-            "units": "mode name",
-            "completionTime": { "value": 2, "units": "TIME_UNITS_SECONDS" }
-          },
-          {
             "type": "COMMAND_TYPE_REQUEST",
             "units": "n/a",
-            "completionTime": { "value": 1, "units": "TIME_UNITS_SECONDS" }
+            "completionTime": {
+              "value": 1,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_GNSS_L1",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_CONTROL",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_VIDEO",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_WIDEBAND",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
           }
         ]
       }
@@ -92,14 +122,44 @@
         },
         "command": [
           {
-            "type": "COMMAND_TYPE_MODE_CHANGE",
-            "units": "mode name",
-            "completionTime": { "value": 2, "units": "TIME_UNITS_SECONDS" }
-          },
-          {
             "type": "COMMAND_TYPE_REQUEST",
             "units": "n/a",
-            "completionTime": { "value": 1, "units": "TIME_UNITS_SECONDS" }
+            "completionTime": {
+              "value": 1,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "STANDBY",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_CONTROL",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_VIDEO",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_WIDEBAND",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
           }
         ]
       }
@@ -129,14 +189,44 @@
         },
         "command": [
           {
-            "type": "COMMAND_TYPE_MODE_CHANGE",
-            "units": "mode name",
-            "completionTime": { "value": 2, "units": "TIME_UNITS_SECONDS" }
-          },
-          {
             "type": "COMMAND_TYPE_REQUEST",
             "units": "n/a",
-            "completionTime": { "value": 1, "units": "TIME_UNITS_SECONDS" }
+            "completionTime": {
+              "value": 1,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "STANDBY",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_GNSS_L1",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_VIDEO",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_WIDEBAND",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
           }
         ]
       }
@@ -166,14 +256,44 @@
         },
         "command": [
           {
-            "type": "COMMAND_TYPE_MODE_CHANGE",
-            "units": "mode name",
-            "completionTime": { "value": 2, "units": "TIME_UNITS_SECONDS" }
-          },
-          {
             "type": "COMMAND_TYPE_REQUEST",
             "units": "n/a",
-            "completionTime": { "value": 1, "units": "TIME_UNITS_SECONDS" }
+            "completionTime": {
+              "value": 1,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "STANDBY",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_GNSS_L1",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_CONTROL",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_WIDEBAND",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
           }
         ]
       }
@@ -203,14 +323,44 @@
         },
         "command": [
           {
-            "type": "COMMAND_TYPE_MODE_CHANGE",
-            "units": "mode name",
-            "completionTime": { "value": 2, "units": "TIME_UNITS_SECONDS" }
-          },
-          {
             "type": "COMMAND_TYPE_REQUEST",
             "units": "n/a",
-            "completionTime": { "value": 1, "units": "TIME_UNITS_SECONDS" }
+            "completionTime": {
+              "value": 1,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "STANDBY",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_GNSS_L1",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_CONTROL",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
+          },
+          {
+            "type": "COMMAND_TYPE_MODE_CHANGE",
+            "units": "JAM_UAV_VIDEO",
+            "completionTime": {
+              "value": 2,
+              "units": "TIME_UNITS_SECONDS"
+            }
           }
         ]
       }

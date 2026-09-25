@@ -139,12 +139,21 @@ separate polling API:
 **Registration gap this required**: like `DetectionReport`/`Signal` fields
 on the sensor side (see spectre's CLAUDE.md), a `StatusReport.Status` entry
 must be individually advertised in `registration.json`'s
-`statusDefinition.statusReport[]` (`category:
-STATUS_REPORT_CATEGORY_STATUS`, `type` matching what's actually populated -
-here `"Mode Change"`) or the Fusion Node will silently strip it. If a future
-change adds another `Status` entry type, add a matching declaration here
-too, and re-verify end-to-end (watch for `warning: ... field ignored`, not
-just hard errors - same quirk class documented in spectre's CLAUDE.md).
+`statusDefinition.statusReport[]` (`category: STATUS_REPORT_CATEGORY_STATUS`)
+or the Fusion Node will reject/strip it - **`type` must match the
+`StatusType` enum name actually used in `status_type`, not a human label
+for what the value means.** We populate `status_type = STATUS_TYPE_OTHER`
+(see `messages.build_status`), so `type` must be `"Other"` (normalizes to
+`other`, matching the enum name minus its `STATUS_TYPE_` prefix) - a first
+attempt at `"Mode Change"` (describing the *content*, not the enum) got
+`warning: invalid optional field: status_report.status.status_type expected
+a status type advertised in registration; field ignored` from the real
+Fusion Node. If a future change populates a different `status_type` (e.g.
+`STATUS_TYPE_INTERNAL_FAULT`), add a matching `"Internal Fault"`-style
+declaration here too, and re-verify end-to-end - watch for this exact
+warning class, not just hard errors (same quirk documented in spectre's
+CLAUDE.md, but note the "what `type` must match" rule differs per field:
+enum name here vs. free-text sub-field name for `DetectionReport`/`Signal`).
 
 ## Safety / what this is *not*
 

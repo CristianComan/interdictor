@@ -31,7 +31,7 @@
     "statusReport": [
       {
         "category": "STATUS_REPORT_CATEGORY_STATUS",
-        "type": "Mode Change",
+        "type": "Other",
         "units": "text"
       }
     ]

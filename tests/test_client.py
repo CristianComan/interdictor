@@ -53,6 +53,9 @@ def _sent_messages(client: SapientEffectorClient) -> list[SapientMessage]:
     return messages
 
 
+FUSION_NODE_ID = "fusion-node"
+
+
 def _start_task(mode_change: str) -> Task:
     task = Task()
     task.task_id = new_ulid()
@@ -65,13 +68,14 @@ def test_mode_change_to_known_mode_is_accepted_and_switches_jammer():
     client = _make_client()
     task = _start_task("JAM_GNSS_L1")
 
-    asyncio.run(client.handle_task(task))
+    asyncio.run(client.handle_task(task, FUSION_NODE_ID))
 
     assert client.jammer.mode == "JAM_GNSS_L1"
     assert client.active_task_id == task.task_id
     sent = _sent_messages(client)
     assert [m.WhichOneof("content") for m in sent] == ["task_ack", "status_report"]
     assert sent[0].task_ack.task_status == TaskAck.TASK_STATUS_ACCEPTED
+    assert sent[0].destination_id == FUSION_NODE_ID
     assert sent[1].status_report.mode == "JAM_GNSS_L1"
     assert sent[1].status_report.active_task_id == task.task_id
 
@@ -80,42 +84,45 @@ def test_mode_change_to_unknown_mode_is_rejected():
     client = _make_client()
     task = _start_task("NOT_A_MODE")
 
-    asyncio.run(client.handle_task(task))
+    asyncio.run(client.handle_task(task, FUSION_NODE_ID))
 
     assert client.jammer.mode == "STANDBY"
     assert client.active_task_id is None
     sent = _sent_messages(client)
     assert len(sent) == 1
     assert sent[0].task_ack.task_status == TaskAck.TASK_STATUS_REJECTED
+    assert sent[0].destination_id == FUSION_NODE_ID
     assert "unsupported mode" in list(sent[0].task_ack.reason)
 
 
 def test_second_concurrent_task_is_rejected():
     client = _make_client()
-    asyncio.run(client.handle_task(_start_task("JAM_GNSS_L1")))
+    asyncio.run(client.handle_task(_start_task("JAM_GNSS_L1"), FUSION_NODE_ID))
 
     second = _start_task("JAM_GNSS_L1")
-    asyncio.run(client.handle_task(second))
+    asyncio.run(client.handle_task(second, FUSION_NODE_ID))
 
     sent = _sent_messages(client)
     assert sent[-1].task_ack.task_status == TaskAck.TASK_STATUS_REJECTED
+    assert sent[-1].destination_id == FUSION_NODE_ID
     assert "concurrent task limit" in list(sent[-1].task_ack.reason)
 
 
 def test_stop_on_active_task_reverts_to_default_mode():
     client = _make_client()
     start = _start_task("JAM_GNSS_L1")
-    asyncio.run(client.handle_task(start))
+    asyncio.run(client.handle_task(start, FUSION_NODE_ID))
 
     stop = Task()
     stop.task_id = start.task_id
     stop.control = Task.CONTROL_STOP
-    asyncio.run(client.handle_task(stop))
+    asyncio.run(client.handle_task(stop, FUSION_NODE_ID))
 
     assert client.jammer.mode == "STANDBY"
     assert client.active_task_id is None
     sent = _sent_messages(client)
     assert sent[-2].task_ack.task_status == TaskAck.TASK_STATUS_ACCEPTED
+    assert sent[-2].destination_id == FUSION_NODE_ID
 
 
 def test_stop_on_unknown_task_is_rejected():
@@ -124,10 +131,11 @@ def test_stop_on_unknown_task_is_rejected():
     stop.task_id = new_ulid()
     stop.control = Task.CONTROL_STOP
 
-    asyncio.run(client.handle_task(stop))
+    asyncio.run(client.handle_task(stop, FUSION_NODE_ID))
 
     sent = _sent_messages(client)
     assert sent[0].task_ack.task_status == TaskAck.TASK_STATUS_REJECTED
+    assert sent[0].destination_id == FUSION_NODE_ID
     assert "resource unavailable" in list(sent[0].task_ack.reason)
 
 
@@ -138,10 +146,11 @@ def test_out_of_scope_command_is_rejected():
     task.control = Task.CONTROL_START
     task.command.look_at.SetInParent()
 
-    asyncio.run(client.handle_task(task))
+    asyncio.run(client.handle_task(task, FUSION_NODE_ID))
 
     sent = _sent_messages(client)
     assert sent[0].task_ack.task_status == TaskAck.TASK_STATUS_REJECTED
+    assert sent[0].destination_id == FUSION_NODE_ID
     assert "unsupported command" in list(sent[0].task_ack.reason)
 
 
@@ -152,18 +161,19 @@ def test_request_command_triggers_immediate_status():
     task.control = Task.CONTROL_START
     task.command.request = "status"
 
-    asyncio.run(client.handle_task(task))
+    asyncio.run(client.handle_task(task, FUSION_NODE_ID))
 
     sent = _sent_messages(client)
     assert [m.WhichOneof("content") for m in sent] == ["task_ack", "status_report"]
     assert sent[0].task_ack.task_status == TaskAck.TASK_STATUS_ACCEPTED
+    assert sent[0].destination_id == FUSION_NODE_ID
 
 
 def test_mode_change_is_recorded_in_mode_history_and_surfaced_on_status():
     client = _make_client()
     task = _start_task("JAM_GNSS_L1")
 
-    asyncio.run(client.handle_task(task))
+    asyncio.run(client.handle_task(task, FUSION_NODE_ID))
 
     transition = client.mode_history.last
     assert transition is not None
@@ -181,7 +191,7 @@ def test_mode_change_to_unknown_mode_does_not_record_a_transition():
     client = _make_client()
     task = _start_task("NOT_A_MODE")
 
-    asyncio.run(client.handle_task(task))
+    asyncio.run(client.handle_task(task, FUSION_NODE_ID))
 
     assert client.mode_history.last is None
 
@@ -189,12 +199,12 @@ def test_mode_change_to_unknown_mode_does_not_record_a_transition():
 def test_stop_reverting_to_default_records_a_transition():
     client = _make_client()
     start = _start_task("JAM_GNSS_L1")
-    asyncio.run(client.handle_task(start))
+    asyncio.run(client.handle_task(start, FUSION_NODE_ID))
 
     stop = Task()
     stop.task_id = start.task_id
     stop.control = Task.CONTROL_STOP
-    asyncio.run(client.handle_task(stop))
+    asyncio.run(client.handle_task(stop, FUSION_NODE_ID))
 
     transition = client.mode_history.last
     assert transition.from_mode == "JAM_GNSS_L1"
@@ -205,7 +215,7 @@ def test_net_stats_track_sent_messages_and_types():
     client = _make_client()
     task = _start_task("JAM_GNSS_L1")
 
-    asyncio.run(client.handle_task(task))
+    asyncio.run(client.handle_task(task, FUSION_NODE_ID))
 
     assert client.net_stats.messages_sent == 2
     assert client.net_stats.sent_by_type == {"task_ack": 1, "status_report": 1}
@@ -267,6 +277,36 @@ def test_receive_loop_records_received_message_and_type():
 
     assert client.net_stats.messages_received == 1
     assert client.net_stats.received_by_type == {"task": 1}
+
+
+def _encode_error_frame(reasons: list[str]) -> bytes:
+    msg = SapientMessage()
+    msg.timestamp.GetCurrentTime()
+    msg.node_id = "fusion-node"
+    msg.error.error_message.extend(reasons)
+    return encode_frame(msg.SerializeToString())
+
+
+def test_receive_loop_logs_and_records_fusion_node_error(caplog):
+    client = _make_client()
+    client.writer = FakeWriter()
+    client.reader = FakeReader(  # type: ignore[assignment]
+        _encode_error_frame(["bad field: status_report.status[0].type"])
+    )
+
+    conn_lost = asyncio.Event()
+    with caplog.at_level("WARNING"):
+        asyncio.run(client.receive_loop(conn_lost))
+
+    # Receiving an Error doesn't itself disconnect - the loop keeps reading
+    # and only stops (here, incrementing receive_errors a second time) once
+    # the FakeReader's buffer is exhausted and EOF looks like a lost
+    # connection. What matters is that the Fusion Node's actual reason made
+    # it into both the log and net_stats, not buried at DEBUG.
+    assert client.net_stats.receive_errors >= 1
+    error_log_records = [r for r in caplog.records if "Fusion Node error" in r.message]
+    assert len(error_log_records) == 1
+    assert "bad field: status_report.status[0].type" in error_log_records[0].message
 
 
 def _encode_registration_ack_frame() -> bytes:

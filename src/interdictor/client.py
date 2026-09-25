@@ -77,12 +77,23 @@ class SapientEffectorClient:
                 payload = await read_frame(self.reader)
                 msg = SapientMessage()
                 msg.ParseFromString(payload)
-                self.net_stats.record_received(msg.WhichOneof("content"), len(payload))
+                kind = msg.WhichOneof("content")
+                self.net_stats.record_received(kind, len(payload))
                 self._log_rx(msg, len(payload))
 
-                if msg.WhichOneof("content") == "task":
+                if kind == "error":
+                    # Error.error_message is otherwise invisible at normal
+                    # log level - _log_rx only logs full message bodies at
+                    # DEBUG, and the Fusion Node's own log doesn't record
+                    # validator detail either, so this is the only place the
+                    # actual rejection reason surfaces.
+                    reasons = list(msg.error.error_message)
+                    LOG.warning("Fusion Node error: %s", reasons)
+                    self.net_stats.record_error(f"Fusion Node error: {reasons}", receive=True)
+
+                if kind == "task":
                     try:
-                        await self.handle_task(msg.task)
+                        await self.handle_task(msg.task, msg.node_id)
                     except (ConnectionError, OSError) as exc:
                         LOG.warning("Failed to send TaskAck: %s", exc)
                         self.net_stats.record_error(str(exc), send=True)
@@ -93,8 +104,8 @@ class SapientEffectorClient:
             self.net_stats.record_error(str(exc), receive=True)
             conn_lost.set()
 
-    async def _ack(self, task_id: str, status: int, *reasons: str) -> None:
-        await self.send(build_task_ack(self.node_id, task_id, status, reasons))
+    async def _ack(self, task_id: str, status: int, destination_id: str, *reasons: str) -> None:
+        await self.send(build_task_ack(self.node_id, task_id, status, destination_id, reasons))
 
     def _record_mode_change(self, previous_mode: str, task_id: str) -> None:
         transition = self.mode_history.record(previous_mode, self.jammer.mode, task_id)
@@ -105,8 +116,13 @@ class SapientEffectorClient:
             task_id,
         )
 
-    async def handle_task(self, task) -> None:
+    async def handle_task(self, task, source_node_id: str) -> None:
         """Dispatch one Task and always reply with exactly one TaskAck.
+
+        source_node_id is the node_id of whoever sent the Task (the
+        enclosing SapientMessage's node_id, not a field on Task itself) -
+        the TaskAck's destination_id must echo it back or the Fusion Node
+        rejects the ack ("missing mandatory field: destination_id").
 
         This is the effector-side counterpart of spectre's Phase-1 tasking
         design (see spectre/PLAN.md): CONTROL_START + `mode_change` engages a
@@ -122,43 +138,53 @@ class SapientEffectorClient:
 
         if task.control in (Task.CONTROL_STOP, Task.CONTROL_PAUSE):
             if task_id != self.active_task_id:
-                await self._ack(task_id, TaskAck.TASK_STATUS_REJECTED, REASON_RESOURCE_UNAVAILABLE)
+                await self._ack(
+                    task_id, TaskAck.TASK_STATUS_REJECTED, source_node_id, REASON_RESOURCE_UNAVAILABLE
+                )
                 return
             previous_mode = self.jammer.mode
             self.jammer.revert_to_default()
             self.active_task_id = None
             self._record_mode_change(previous_mode, task_id)
-            await self._ack(task_id, TaskAck.TASK_STATUS_ACCEPTED)
+            await self._ack(task_id, TaskAck.TASK_STATUS_ACCEPTED, source_node_id)
             await self.send_status()
             return
 
         if task.control != Task.CONTROL_START:
-            await self._ack(task_id, TaskAck.TASK_STATUS_REJECTED, REASON_UNSUPPORTED_COMMAND)
+            await self._ack(
+                task_id, TaskAck.TASK_STATUS_REJECTED, source_node_id, REASON_UNSUPPORTED_COMMAND
+            )
             return
 
         if self.active_task_id is not None and self.active_task_id != task_id:
-            await self._ack(task_id, TaskAck.TASK_STATUS_REJECTED, REASON_CONCURRENT_TASK_LIMIT)
+            await self._ack(
+                task_id, TaskAck.TASK_STATUS_REJECTED, source_node_id, REASON_CONCURRENT_TASK_LIMIT
+            )
             return
 
         which = task.command.WhichOneof("command")
         if which == "mode_change":
             previous_mode = self.jammer.mode
             if not self.jammer.switch_to(task.command.mode_change):
-                await self._ack(task_id, TaskAck.TASK_STATUS_REJECTED, REASON_UNSUPPORTED_MODE)
+                await self._ack(
+                    task_id, TaskAck.TASK_STATUS_REJECTED, source_node_id, REASON_UNSUPPORTED_MODE
+                )
                 return
             self.active_task_id = task_id
             self._record_mode_change(previous_mode, task_id)
-            await self._ack(task_id, TaskAck.TASK_STATUS_ACCEPTED)
+            await self._ack(task_id, TaskAck.TASK_STATUS_ACCEPTED, source_node_id)
             await self.send_status()
             return
 
         if which == "request":
             self.active_task_id = task_id
-            await self._ack(task_id, TaskAck.TASK_STATUS_ACCEPTED)
+            await self._ack(task_id, TaskAck.TASK_STATUS_ACCEPTED, source_node_id)
             await self.send_status()
             return
 
-        await self._ack(task_id, TaskAck.TASK_STATUS_REJECTED, REASON_UNSUPPORTED_COMMAND)
+        await self._ack(
+            task_id, TaskAck.TASK_STATUS_REJECTED, source_node_id, REASON_UNSUPPORTED_COMMAND
+        )
 
     async def send_registration(self) -> None:
         reg_path = self.cfg["node"]["registration_file"]

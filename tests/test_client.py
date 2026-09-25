@@ -267,3 +267,21 @@ def test_receive_loop_records_received_message_and_type():
 
     assert client.net_stats.messages_received == 1
     assert client.net_stats.received_by_type == {"task": 1}
+
+
+def _encode_registration_ack_frame() -> bytes:
+    msg = SapientMessage()
+    msg.timestamp.GetCurrentTime()
+    msg.node_id = "fusion-node"
+    msg.registration_ack.acceptance = True
+    return encode_frame(msg.SerializeToString())
+
+
+def test_await_registration_ack_records_received_message():
+    client = _make_client()
+    client.reader = FakeReader(_encode_registration_ack_frame())  # type: ignore[assignment]
+
+    asyncio.run(client.await_registration_ack())
+
+    assert client.net_stats.messages_received == 1
+    assert client.net_stats.received_by_type == {"registration_ack": 1}

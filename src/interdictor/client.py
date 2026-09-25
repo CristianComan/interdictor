@@ -180,9 +180,10 @@ class SapientEffectorClient:
             payload = await asyncio.wait_for(read_frame(self.reader), timeout=remaining)
             msg = SapientMessage()
             msg.ParseFromString(payload)
+            kind = msg.WhichOneof("content")
+            self.net_stats.record_received(kind, len(payload))
             self._log_rx(msg, len(payload))
 
-            kind = msg.WhichOneof("content")
             if kind == "registration_ack":
                 if not msg.registration_ack.acceptance:
                     raise RuntimeError(

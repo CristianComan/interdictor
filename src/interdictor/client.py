@@ -77,10 +77,21 @@ class SapientEffectorClient:
                 payload = await read_frame(self.reader)
                 msg = SapientMessage()
                 msg.ParseFromString(payload)
-                self.net_stats.record_received(msg.WhichOneof("content"), len(payload))
+                kind = msg.WhichOneof("content")
+                self.net_stats.record_received(kind, len(payload))
                 self._log_rx(msg, len(payload))
 
-                if msg.WhichOneof("content") == "task":
+                if kind == "error":
+                    # Error.error_message is otherwise invisible at normal
+                    # log level - _log_rx only logs full message bodies at
+                    # DEBUG, and the Fusion Node's own log doesn't record
+                    # validator detail either, so this is the only place the
+                    # actual rejection reason surfaces.
+                    reasons = list(msg.error.error_message)
+                    LOG.warning("Fusion Node error: %s", reasons)
+                    self.net_stats.record_error(f"Fusion Node error: {reasons}", receive=True)
+
+                if kind == "task":
                     try:
                         await self.handle_task(msg.task)
                     except (ConnectionError, OSError) as exc:

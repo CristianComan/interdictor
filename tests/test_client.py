@@ -269,6 +269,36 @@ def test_receive_loop_records_received_message_and_type():
     assert client.net_stats.received_by_type == {"task": 1}
 
 
+def _encode_error_frame(reasons: list[str]) -> bytes:
+    msg = SapientMessage()
+    msg.timestamp.GetCurrentTime()
+    msg.node_id = "fusion-node"
+    msg.error.error_message.extend(reasons)
+    return encode_frame(msg.SerializeToString())
+
+
+def test_receive_loop_logs_and_records_fusion_node_error(caplog):
+    client = _make_client()
+    client.writer = FakeWriter()
+    client.reader = FakeReader(  # type: ignore[assignment]
+        _encode_error_frame(["bad field: status_report.status[0].type"])
+    )
+
+    conn_lost = asyncio.Event()
+    with caplog.at_level("WARNING"):
+        asyncio.run(client.receive_loop(conn_lost))
+
+    # Receiving an Error doesn't itself disconnect - the loop keeps reading
+    # and only stops (here, incrementing receive_errors a second time) once
+    # the FakeReader's buffer is exhausted and EOF looks like a lost
+    # connection. What matters is that the Fusion Node's actual reason made
+    # it into both the log and net_stats, not buried at DEBUG.
+    assert client.net_stats.receive_errors >= 1
+    error_log_records = [r for r in caplog.records if "Fusion Node error" in r.message]
+    assert len(error_log_records) == 1
+    assert "bad field: status_report.status[0].type" in error_log_records[0].message
+
+
 def _encode_registration_ack_frame() -> bytes:
     msg = SapientMessage()
     msg.timestamp.GetCurrentTime()

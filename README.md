@@ -18,6 +18,11 @@ Scope:
   - anything else (look_at/move_to/patrol/follow/thresholds) -> rejected, out of scope for a fixed effector
 - YAML configuration
 - TX/RX logging
+- Mode-change history: every Tasking-driven mode transition is logged as a
+  distinct `MODE CHANGE: ...` line and surfaced on the next `StatusReport`
+  (visible on the Fusion Node/C2 UI, not just local logs)
+- Network monitoring: TX/RX message and byte counters, per-message-type
+  breakdown, and connection error/reconnect counts, logged periodically
 
 Not included yet:
 
@@ -69,7 +74,9 @@ config/interdictor.yaml
 config/registration.json
 ```
 
-The sample Apex v2 child endpoint is port `5020`.
+The sample Apex v2 child endpoint is configured at `127.0.0.1:5100` by
+default - deliberately different from spectre's `5020`, so both clients can
+run against the same local Fusion Node without a port clash.
 
 ## 4. Run
 

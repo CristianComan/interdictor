@@ -27,6 +27,12 @@ src/interdictor/         Product code (async TCP client)
   framing.py                4-byte LE length-prefix framing over the TCP stream
   messages.py               Builds SapientMessage envelopes (Registration/StatusReport/TaskAck)
   jam.py                    JammerController: tracks current mode / simulated jam profile - never transmits
+  mode_history.py           ModeHistory: records every Tasking-driven mode transition; last one is
+                            surfaced on StatusReport.status[] (visible on the Fusion Node/C2 side) and
+                            logged as a distinct "MODE CHANGE: ..." line
+  netmon.py                 NetworkStats: TX/RX message+byte counters, per-type breakdown, connect/
+                            send/receive error and reconnect/disconnect counts; summary() is logged
+                            once per status interval (see client.send_status)
   proto.py                  Re-exports generated protobuf classes (raises a clear error if ungenerated)
   ids.py                    ULID generation for report_id/task tracking
 
@@ -101,6 +107,45 @@ Guide's Appendix B reserved strings (see `client.py`'s `REASON_*`
 constants), matching the convention spectre's PLAN.md documents for its own
 (not-yet-implemented) Tasking phase.
 
+## Observability: mode changes and network stats
+
+Two small components exist purely for operator/developer visibility, wired
+into `client.py` at every relevant call site rather than living behind a
+separate polling API:
+
+- **`mode_history.ModeHistory`** - every successful `mode_change` or
+  `CONTROL_STOP`/`CONTROL_PAUSE` reversion calls `client._record_mode_change`,
+  which both logs a distinct `MODE CHANGE: <from> -> <to> (task_id=...)` line
+  and appends a `ModeTransition` (capped at 100 entries). The *latest*
+  transition is also passed into `messages.build_status`, which adds it as a
+  `StatusReport.status[]` entry (`STATUS_TYPE_OTHER`) - so a mode change is
+  visible on the Fusion Node/C2 UI itself, not just in local logs. Note this
+  history is **not** reset on reconnect (unlike `jammer`/`active_task_id`,
+  which are): the first `StatusReport` after a fresh reconnect can still
+  carry the last transition from a *previous* connection. This is
+  intentional (it's a historical record, not "current state"), but worth
+  remembering if it looks surprising in a Fusion Node log.
+- **`netmon.NetworkStats`** - counts messages/bytes sent and received (with
+  a per-message-type breakdown), plus send/receive errors, connect attempts/
+  failures, and disconnects. Every `send()`/`receive_loop()`/`connect()`/
+  `close()` call site updates it (see the `self.net_stats.record_*` calls in
+  `client.py`). `client.send_status()` logs `net_stats.summary()` once per
+  `status.interval_s` tick, piggybacking on the existing periodic cadence
+  instead of adding a second timer loop. Counters persist for the whole
+  process lifetime, including across reconnects, by design - they're meant
+  to answer "how has this connection behaved overall", not just "since the
+  last reconnect".
+
+**Registration gap this required**: like `DetectionReport`/`Signal` fields
+on the sensor side (see spectre's CLAUDE.md), a `StatusReport.Status` entry
+must be individually advertised in `registration.json`'s
+`statusDefinition.statusReport[]` (`category:
+STATUS_REPORT_CATEGORY_STATUS`, `type` matching what's actually populated -
+here `"Mode Change"`) or the Fusion Node will silently strip it. If a future
+change adds another `Status` entry type, add a matching declaration here
+too, and re-verify end-to-end (watch for `warning: ... field ignored`, not
+just hard errors - same quirk class documented in spectre's CLAUDE.md).
+
 ## Safety / what this is *not*
 
 `JammerController` (`jam.py`) is pure bookkeeping: it records which
@@ -130,13 +175,22 @@ interdictor --config config/interdictor.yaml
 ```
 
 A SAPIENT Fusion Node (e.g. Apex child endpoint) must be listening at the
-configured host/port (default `127.0.0.1:5020`) for the client to connect;
-otherwise it fails fast on `asyncio.open_connection`.
+configured host/port for the client to connect; otherwise it fails fast on
+`asyncio.open_connection`. Default is `127.0.0.1:5100`, deliberately
+different from spectre's `5020` default so both clients can run against the
+same local test Fusion Node (`CI-map-viewer`) at once without a port
+clash - that node's own `config/application.properties` needs a matching
+`network.sapient.connections.N` entry (`host=127.0.0.1`, not `0.0.0.0`'s
+subnet-typo-prone neighbors - a `172.0.0.1` typo there once caused a
+`BindException: Cannot assign requested address` that looked from this side
+like a plain refused connection).
 
 Tests: `pytest`. `tests/test_client.py` drives `SapientEffectorClient.handle_task`
 directly against a fake writer (no real socket/Fusion Node needed) to assert
-the TaskAck/StatusReport behavior above - this is the precedent to extend
-when adding new Task command handling.
+the TaskAck/StatusReport behavior above; `tests/test_mode_history.py` and
+`tests/test_netmon.py` cover the two observability components in isolation.
+This is the precedent to extend when adding new Task command handling or
+new counters.
 
 **Node identity**: `node.node_id` in `interdictor.yaml` is read once at
 startup (`main.py`) and never regenerated - stays fixed for the whole

@@ -1,6 +1,6 @@
 fusion_node:
   host: "127.0.0.1"
-  port: 5020
+  port: 5100
   connect_timeout_s: 5.0
   reconnect:
     initial_delay_s: 1.0

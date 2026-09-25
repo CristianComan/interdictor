@@ -8,6 +8,8 @@ from google.protobuf.json_format import MessageToDict
 from .framing import encode_frame, read_frame
 from .jam import JammerController
 from .messages import build_registration, build_status, build_task_ack
+from .mode_history import ModeHistory
+from .netmon import NetworkStats
 from .proto import SapientMessage, Task, TaskAck
 
 LOG = logging.getLogger("interdictor")
@@ -32,9 +34,12 @@ class SapientEffectorClient:
         default_mode = cfg["status"]["default_mode"]
         self.jammer = JammerController(cfg.get("jamming", {}), default_mode)
         self.active_task_id: str | None = None
+        self.mode_history = ModeHistory()
+        self.net_stats = NetworkStats()
 
     async def connect(self) -> None:
         fn = self.cfg["fusion_node"]
+        self.net_stats.record_connect_attempt()
         LOG.info("Connecting to %s:%s", fn["host"], fn["port"])
         self.reader, self.writer = await asyncio.wait_for(
             asyncio.open_connection(fn["host"], int(fn["port"])),
@@ -46,17 +51,19 @@ class SapientEffectorClient:
         if self.writer is None:
             raise RuntimeError("Not connected")
         payload = msg.SerializeToString()
+        kind = msg.WhichOneof("content")
         self.writer.write(encode_frame(payload))
         await self.writer.drain()
-        LOG.info(
-            "TX %s node_id=%s bytes=%d",
-            msg.WhichOneof("content"),
-            msg.node_id,
-            len(payload),
-        )
+        self.net_stats.record_sent(kind, len(payload))
+        LOG.info("TX %s node_id=%s bytes=%d", kind, msg.node_id, len(payload))
 
     async def send_status(self) -> None:
-        await self.send(build_status(self.node_id, self.cfg, self.jammer.mode, self.active_task_id))
+        await self.send(
+            build_status(
+                self.node_id, self.cfg, self.jammer.mode, self.active_task_id, self.mode_history.last
+            )
+        )
+        LOG.info("NET STATS: %s", self.net_stats.summary())
 
     @staticmethod
     def _log_rx(msg: SapientMessage, payload_len: int) -> None:
@@ -70,16 +77,33 @@ class SapientEffectorClient:
                 payload = await read_frame(self.reader)
                 msg = SapientMessage()
                 msg.ParseFromString(payload)
+                self.net_stats.record_received(msg.WhichOneof("content"), len(payload))
                 self._log_rx(msg, len(payload))
 
                 if msg.WhichOneof("content") == "task":
-                    await self.handle_task(msg.task)
+                    try:
+                        await self.handle_task(msg.task)
+                    except (ConnectionError, OSError) as exc:
+                        LOG.warning("Failed to send TaskAck: %s", exc)
+                        self.net_stats.record_error(str(exc), send=True)
+                        conn_lost.set()
+                        break
         except (asyncio.IncompleteReadError, ConnectionError, OSError) as exc:
             LOG.warning("Fusion Node connection lost: %s", exc)
+            self.net_stats.record_error(str(exc), receive=True)
             conn_lost.set()
 
     async def _ack(self, task_id: str, status: int, *reasons: str) -> None:
         await self.send(build_task_ack(self.node_id, task_id, status, reasons))
+
+    def _record_mode_change(self, previous_mode: str, task_id: str) -> None:
+        transition = self.mode_history.record(previous_mode, self.jammer.mode, task_id)
+        LOG.info(
+            "MODE CHANGE: %s -> %s (task_id=%s)",
+            transition.from_mode,
+            transition.to_mode,
+            task_id,
+        )
 
     async def handle_task(self, task) -> None:
         """Dispatch one Task and always reply with exactly one TaskAck.
@@ -100,8 +124,10 @@ class SapientEffectorClient:
             if task_id != self.active_task_id:
                 await self._ack(task_id, TaskAck.TASK_STATUS_REJECTED, REASON_RESOURCE_UNAVAILABLE)
                 return
+            previous_mode = self.jammer.mode
             self.jammer.revert_to_default()
             self.active_task_id = None
+            self._record_mode_change(previous_mode, task_id)
             await self._ack(task_id, TaskAck.TASK_STATUS_ACCEPTED)
             await self.send_status()
             return
@@ -116,10 +142,12 @@ class SapientEffectorClient:
 
         which = task.command.WhichOneof("command")
         if which == "mode_change":
+            previous_mode = self.jammer.mode
             if not self.jammer.switch_to(task.command.mode_change):
                 await self._ack(task_id, TaskAck.TASK_STATUS_REJECTED, REASON_UNSUPPORTED_MODE)
                 return
             self.active_task_id = task_id
+            self._record_mode_change(previous_mode, task_id)
             await self._ack(task_id, TaskAck.TASK_STATUS_ACCEPTED)
             await self.send_status()
             return
@@ -171,6 +199,7 @@ class SapientEffectorClient:
                 await self.send_status()
             except (ConnectionError, OSError) as exc:
                 LOG.warning("Failed to send status report: %s", exc)
+                self.net_stats.record_error(str(exc), send=True)
                 conn_lost.set()
                 break
             try:
@@ -210,6 +239,7 @@ class SapientEffectorClient:
                 await self.await_registration_ack()
             except (OSError, asyncio.TimeoutError, asyncio.IncompleteReadError, RuntimeError) as exc:
                 LOG.warning("Connect failed: %s", exc)
+                self.net_stats.record_connect_failure()
             else:
                 delay = initial_delay
                 self.jammer.revert_to_default()
@@ -234,6 +264,7 @@ class SapientEffectorClient:
                 await self.writer.wait_closed()
             except Exception:
                 pass
+            self.net_stats.record_disconnect()
             LOG.info("Disconnected")
         self.reader = None
         self.writer = None

@@ -8,6 +8,7 @@ from google.protobuf.json_format import ParseDict
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from .ids import new_ulid
+from .mode_history import ModeTransition
 from .proto import SapientMessage, Registration, StatusReport, TaskAck
 
 
@@ -43,7 +44,11 @@ def _set_wgs84_location(location_msg, latitude: float, longitude: float, altitud
 
 
 def build_status(
-    node_id: str, cfg: dict, mode: str, active_task_id: str | None
+    node_id: str,
+    cfg: dict,
+    mode: str,
+    active_task_id: str | None,
+    last_transition: ModeTransition | None = None,
 ) -> SapientMessage:
     body = StatusReport()
     body.report_id = new_ulid()
@@ -60,6 +65,17 @@ def build_status(
             float(loc["latitude"]),
             float(loc["longitude"]),
             float(loc.get("altitude", 0.0)),
+        )
+
+    if last_transition is not None:
+        # Surfaces the latest Tasking-driven mode change to the Fusion Node /
+        # C2 UI, not just local logs - see mode_history.ModeHistory.
+        status_entry = body.status.add()
+        status_entry.status_level = StatusReport.STATUS_LEVEL_INFORMATION_STATUS
+        status_entry.status_type = StatusReport.STATUS_TYPE_OTHER
+        reason = f" (task={last_transition.task_id})" if last_transition.task_id else ""
+        status_entry.status_value = (
+            f"Mode change: {last_transition.from_mode} -> {last_transition.to_mode}{reason}"
         )
 
     return _wrap(node_id, "status_report", body)
